@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabase = createClient(
@@ -72,7 +72,7 @@ function AuthScreen({ onAuth }) {
   };
 
   return (
-    <div style={{ minHeight:"100vh", background:"#080808", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"0 28px" }}>
+    <div style={{ minHeight:"100vh", background:"#080808", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"0 28px", margin:0 }}>
       <div style={{ marginBottom:40, textAlign:"center" }}>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:5, color:"#FF4D00", marginBottom:8 }}>⚡ WELCOME TO</div>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:48, fontWeight:900, letterSpacing:4, color:"#fff", lineHeight:1 }}>GRIND<span style={{ color:"#FF4D00" }}>MODE</span></div>
@@ -202,8 +202,9 @@ export default function GrindMode() {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500&display=swap');
+        html, body { margin:0; padding:0; background:#080808; }
         * { box-sizing:border-box; margin:0; padding:0; }
-        body { background:#080808; color:#e0e0e0; font-family:'Barlow',sans-serif; min-height:100vh; }
+        body { color:#e0e0e0; font-family:'Barlow',sans-serif; min-height:100vh; }
         @keyframes fadeSlide { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
         @keyframes popUp { 0%{opacity:0;transform:translateY(0) scale(0.8)}20%{opacity:1;transform:translateY(-20px) scale(1.1)}80%{opacity:1;transform:translateY(-35px) scale(1)}100%{opacity:0;transform:translateY(-50px) scale(0.9)} }
         .tab-btn{background:none;border:none;cursor:pointer;padding:10px 0;font-size:12px;letter-spacing:3px;text-transform:uppercase;transition:color 0.2s ease;font-family:'Barlow Condensed',sans-serif;}
@@ -283,7 +284,7 @@ export default function GrindMode() {
               ) : leaderboard.map((entry, i) => {
                 const isMe = entry.username === profile?.username;
                 return (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", marginBottom:4, background:isMe?"rgba(255,77,0,0.07)":"transparent", border:isMe?"1px solid rgba(255,77,0,0.25)":"1px solid transparent", borderRadius:4, animation:`fadeSlide 0.4s ease ${i*0.06}s both` }}>
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:14, padding:"12px 16px", marginBottom:4, background:isMe?"rgba(255,77,0,0.07)":"transparent", border:isMe?"1px solid rgba(255,77,0,0.25)":"1px solid transparent", borderRadius:4 }}>
                     <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:i<3?18:14, fontWeight:700, color:i===0?"#FFD600":i===1?"#aaa":i===2?"#CD7F32":"#555", minWidth:28, textAlign:"center" }}>
                       {i<3?["🥇","🥈","🥉"][i]:`#${i+1}`}
                     </div>
@@ -301,7 +302,7 @@ export default function GrindMode() {
           {tab === "challenges" && (
             <div style={{ animation:"fadeSlide 0.3s ease" }}>
               <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:4, color:"#555", marginBottom:16 }}>🎯 ACTIVE MISSIONS</div>
-              {CHALLENGES.map((c,i) => {
+              {CHALLENGES.map((c) => {
                 const pct = (c.progress/c.total)*100;
                 return (
                   <div key={c.id} style={{ background:"#0d0d0d", border:"1px solid #1e1e1e", borderRadius:4, padding:"18px 20px", marginBottom:10 }}>
