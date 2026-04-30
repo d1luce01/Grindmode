@@ -12,6 +12,8 @@ const CATEGORIES = {
   habits: { icon: "🔥", label: "HABITS", color: "#FFD600" },
 };
 
+const DIFFICULTY_XP = { EASY: 50, MEDIUM: 100, HARD: 200 };
+
 const DEFAULT_TASKS = [
   { id: 1, text: "Morning workout — 30 min", category: "fitness", xp: 150, streak: 0, completed: false, difficulty: "HARD" },
   { id: 2, text: "Cold shower", category: "habits", xp: 75, streak: 0, completed: false, difficulty: "MEDIUM" },
@@ -116,25 +118,89 @@ function XPBar({ xp }) {
   );
 }
 
-function TaskCard({ task, onToggle }) {
+function TaskCard({ task, onToggle, onDelete }) {
   const [animating, setAnimating] = useState(false);
   const cat = CATEGORIES[task.category];
   const handleToggle = () => { setAnimating(true); setTimeout(() => setAnimating(false), 400); onToggle(task.id); };
   return (
-    <div onClick={handleToggle} style={{ background:task.completed?"rgba(255,77,0,0.04)":"#111", border:task.completed?"1px solid rgba(255,77,0,0.3)":"1px solid #222", borderRadius:4, padding:"14px 16px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all 0.25s ease", transform:animating?"scale(0.98)":"scale(1)", position:"relative", overflow:"hidden" }}>
-      {task.completed && <div style={{ position:"absolute", left:0, top:0, bottom:0, width:3, background:"linear-gradient(180deg,#FF4D00,#FFD600)" }} />}
-      <div style={{ width:22, height:22, borderRadius:3, border:task.completed?"none":"2px solid #333", background:task.completed?"linear-gradient(135deg,#FF4D00,#FFD600)":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.25s ease", boxShadow:task.completed?"0 0 10px rgba(255,77,0,0.4)":"none" }}>
-        {task.completed && <span style={{ fontSize:12, color:"#000" }}>✓</span>}
-      </div>
-      <div style={{ flex:1 }}>
-        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:15, letterSpacing:1, color:task.completed?"#666":"#e8e8e8", textDecoration:task.completed?"line-through":"none", marginBottom:4, textTransform:"uppercase" }}>{task.text}</div>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <span style={{ fontSize:10, letterSpacing:2, fontFamily:"'Barlow Condensed',sans-serif", color:cat.color, textTransform:"uppercase" }}>{cat.icon} {cat.label}</span>
-          <span style={{ fontSize:10, letterSpacing:2, fontFamily:"'Barlow Condensed',sans-serif", color:task.difficulty==="HARD"?"#FF4D00":task.difficulty==="MEDIUM"?"#FFD600":"#888", marginLeft:"auto" }}>{task.difficulty}</span>
+    <div style={{ position:"relative", marginBottom:6 }}>
+      <div onClick={handleToggle} style={{ background:task.completed?"rgba(255,77,0,0.04)":"#111", border:task.completed?"1px solid rgba(255,77,0,0.3)":"1px solid #222", borderRadius:4, padding:"14px 16px", cursor:"pointer", display:"flex", alignItems:"center", gap:14, transition:"all 0.25s ease", transform:animating?"scale(0.98)":"scale(1)", position:"relative", overflow:"hidden" }}>
+        {task.completed && <div style={{ position:"absolute", left:0, top:0, bottom:0, width:3, background:"linear-gradient(180deg,#FF4D00,#FFD600)" }} />}
+        <div style={{ width:22, height:22, borderRadius:3, border:task.completed?"none":"2px solid #333", background:task.completed?"linear-gradient(135deg,#FF4D00,#FFD600)":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.25s ease", boxShadow:task.completed?"0 0 10px rgba(255,77,0,0.4)":"none" }}>
+          {task.completed && <span style={{ fontSize:12, color:"#000" }}>✓</span>}
+        </div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:15, letterSpacing:1, color:task.completed?"#666":"#e8e8e8", textDecoration:task.completed?"line-through":"none", marginBottom:4, textTransform:"uppercase" }}>{task.text}</div>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:10, letterSpacing:2, fontFamily:"'Barlow Condensed',sans-serif", color:cat.color, textTransform:"uppercase" }}>{cat.icon} {cat.label}</span>
+            <span style={{ fontSize:10, letterSpacing:2, fontFamily:"'Barlow Condensed',sans-serif", color:task.difficulty==="HARD"?"#FF4D00":task.difficulty==="MEDIUM"?"#FFD600":"#888", marginLeft:"auto" }}>{task.difficulty}</span>
+          </div>
+        </div>
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, letterSpacing:2, fontWeight:700, color:task.completed?"#444":"#FF4D00", textAlign:"right", minWidth:52 }}>
+          +{task.xp}<div style={{ fontSize:9, letterSpacing:3, color:"#555", marginTop:1 }}>XP</div>
         </div>
       </div>
-      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:13, letterSpacing:2, fontWeight:700, color:task.completed?"#444":"#FF4D00", textAlign:"right", minWidth:52 }}>
-        +{task.xp}<div style={{ fontSize:9, letterSpacing:3, color:"#555", marginTop:1 }}>XP</div>
+      {task.custom && (
+        <button onClick={() => onDelete(task.id)} style={{ position:"absolute", top:8, right:8, background:"none", border:"none", color:"#333", cursor:"pointer", fontSize:14, lineHeight:1, padding:4 }}>✕</button>
+      )}
+    </div>
+  );
+}
+
+function AddTaskModal({ onAdd, onClose }) {
+  const [text, setText] = useState("");
+  const [category, setCategory] = useState("habits");
+  const [difficulty, setDifficulty] = useState("MEDIUM");
+
+  const handleAdd = () => {
+    if (!text.trim()) return;
+    onAdd({
+      id: Date.now(),
+      text: text.trim(),
+      category,
+      difficulty,
+      xp: DIFFICULTY_XP[difficulty],
+      streak: 0,
+      completed: false,
+      custom: true,
+    });
+    onClose();
+  };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:500, display:"flex", alignItems:"flex-end" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ width:"100%", background:"#111", borderRadius:"12px 12px 0 0", padding:"28px 24px 48px", border:"1px solid #222" }}>
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, letterSpacing:4, color:"#FF4D00", marginBottom:20 }}>+ NEW TASK</div>
+
+        <input
+          placeholder="TASK NAME"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          autoFocus
+          style={{ width:"100%", padding:"14px 16px", background:"#0d0d0d", border:"1px solid #333", borderRadius:4, color:"#e0e0e0", fontSize:14, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:1, outline:"none", marginBottom:16, textTransform:"uppercase" }}
+        />
+
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:3, color:"#555", marginBottom:10 }}>CATEGORY</div>
+        <div style={{ display:"flex", gap:8, marginBottom:20 }}>
+          {Object.entries(CATEGORIES).map(([key, cat]) => (
+            <button key={key} onClick={() => setCategory(key)} style={{ flex:1, padding:"10px 6px", background:category===key?"rgba(255,77,0,0.1)":"transparent", border:category===key?`1px solid ${cat.color}`:"1px solid #222", borderRadius:4, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:2, color:category===key?cat.color:"#555", textTransform:"uppercase" }}>
+              {cat.icon}<br/>{cat.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:3, color:"#555", marginBottom:10 }}>DIFFICULTY</div>
+        <div style={{ display:"flex", gap:8, marginBottom:24 }}>
+          {["EASY","MEDIUM","HARD"].map(d => (
+            <button key={d} onClick={() => setDifficulty(d)} style={{ flex:1, padding:"10px 6px", background:difficulty===d?"rgba(255,77,0,0.1)":"transparent", border:difficulty===d?"1px solid #FF4D00":"1px solid #222", borderRadius:4, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:2, color:difficulty===d?"#FF4D00":"#555", textTransform:"uppercase" }}>
+              {d}<br/><span style={{ fontSize:9, color:difficulty===d?"#FFD600":"#444" }}>+{DIFFICULTY_XP[d]} XP</span>
+            </button>
+          ))}
+        </div>
+
+        <button onClick={handleAdd} style={{ width:"100%", padding:"16px", background:"linear-gradient(90deg,#FF4D00,#FFD600)", border:"none", borderRadius:4, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, letterSpacing:4, fontWeight:700, color:"#000", textTransform:"uppercase", boxShadow:"0 0 20px rgba(255,77,0,0.4)" }}>
+          ADD TASK
+        </button>
       </div>
     </div>
   );
@@ -148,6 +214,7 @@ export default function GrindMode() {
   const [xpPop, setXpPop] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingBoard, setLoadingBoard] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -186,6 +253,8 @@ export default function GrindMode() {
     }
   };
 
+  const addTask = (task) => setTasks(prev => [...prev, task]);
+  const deleteTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
   const handleSignOut = async () => { await supabase.auth.signOut(); setTasks(DEFAULT_TASKS); };
 
   if (!user) return <AuthScreen onAuth={(u) => { setUser(u); loadProfile(u.id); }} />;
@@ -214,6 +283,7 @@ export default function GrindMode() {
         input::placeholder{color:#444;}
       `}</style>
       <div className="scanline" />
+      {showAddTask && <AddTaskModal onAdd={addTask} onClose={() => setShowAddTask(false)} />}
       {xpPop && <div style={{ position:"fixed",top:"30%",left:"50%",transform:"translateX(-50%)",fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,letterSpacing:4,color:"#FFD600",textShadow:"0 0 30px rgba(255,214,0,0.8)",animation:"popUp 1.8s ease forwards",zIndex:999,pointerEvents:"none" }}>+{xpPop.xp} XP</div>}
 
       <div style={{ maxWidth:480, margin:"0 auto", paddingBottom:80 }}>
@@ -267,10 +337,17 @@ export default function GrindMode() {
                       <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:4, color:cat.color }}>{cat.icon} {cat.label}</div>
                       <div style={{ fontSize:10, color:"#444", letterSpacing:2 }}>{done}/{catTasks.length}</div>
                     </div>
-                    {catTasks.map(task => <div key={task.id} style={{ marginBottom:6 }}><TaskCard task={task} onToggle={toggleTask} /></div>)}
+                    {catTasks.map(task => <TaskCard key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />)}
                   </div>
                 );
-              }) : filtered.map(task => <div key={task.id} style={{ marginBottom:6 }}><TaskCard task={task} onToggle={toggleTask} /></div>)}
+              }) : filtered.map(task => <TaskCard key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />)}
+
+              <button
+                onClick={() => setShowAddTask(true)}
+                style={{ width:"100%", padding:"14px", background:"transparent", border:"1px dashed #222", borderRadius:4, color:"#444", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, letterSpacing:3, textTransform:"uppercase", marginTop:8, transition:"all 0.2s ease" }}
+                onMouseEnter={e => { e.target.style.borderColor="#FF4D00"; e.target.style.color="#FF4D00"; }}
+                onMouseLeave={e => { e.target.style.borderColor="#222"; e.target.style.color="#444"; }}
+              >+ ADD TASK</button>
             </div>
           )}
 
