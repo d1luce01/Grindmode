@@ -14,14 +14,7 @@ const CATEGORIES = {
 
 const DIFFICULTY_XP = { EASY: 50, MEDIUM: 100, HARD: 200 };
 
-const DEFAULT_TASKS = [
-  { id: 1, text: "Morning workout — 30 min", category: "fitness", xp: 150, streak: 0, completed: false, difficulty: "HARD" },
-  { id: 2, text: "Cold shower", category: "habits", xp: 75, streak: 0, completed: false, difficulty: "MEDIUM" },
-  { id: 3, text: "Deep work block — 2 hrs", category: "work", xp: 200, streak: 0, completed: false, difficulty: "HARD" },
-  { id: 4, text: "No phone before 9am", category: "habits", xp: 100, streak: 0, completed: false, difficulty: "MEDIUM" },
-  { id: 5, text: "Read 20 pages", category: "work", xp: 80, streak: 0, completed: false, difficulty: "EASY" },
-  { id: 6, text: "Hit daily steps — 10k", category: "fitness", xp: 120, streak: 0, completed: false, difficulty: "MEDIUM" },
-];
+const DEFAULT_TASKS = [];
 
 const CHALLENGES = [
   { id: 1, title: "THE IRON WEEK", desc: "Complete all fitness tasks 7 days straight", reward: 500, progress: 4, total: 7, expires: "3d 14h" },
@@ -140,9 +133,7 @@ function TaskCard({ task, onToggle, onDelete }) {
           +{task.xp}<div style={{ fontSize:9, letterSpacing:3, color:"#555", marginTop:1 }}>XP</div>
         </div>
       </div>
-      {task.custom && (
-        <button onClick={() => onDelete(task.id)} style={{ position:"absolute", top:8, right:8, background:"none", border:"none", color:"#333", cursor:"pointer", fontSize:14, lineHeight:1, padding:4 }}>✕</button>
-      )}
+      <button onClick={() => onDelete(task.id)} style={{ position:"absolute", top:8, right:8, background:"none", border:"none", color:"#333", cursor:"pointer", fontSize:14, lineHeight:1, padding:4 }}>✕</button>
     </div>
   );
 }
@@ -171,7 +162,6 @@ function AddTaskModal({ onAdd, onClose }) {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:500, display:"flex", alignItems:"flex-end" }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ width:"100%", background:"#111", borderRadius:"12px 12px 0 0", padding:"28px 24px 48px", border:"1px solid #222" }}>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, letterSpacing:4, color:"#FF4D00", marginBottom:20 }}>+ NEW TASK</div>
-
         <input
           placeholder="TASK NAME"
           value={text}
@@ -179,7 +169,6 @@ function AddTaskModal({ onAdd, onClose }) {
           autoFocus
           style={{ width:"100%", padding:"14px 16px", background:"#0d0d0d", border:"1px solid #333", borderRadius:4, color:"#e0e0e0", fontSize:14, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:1, outline:"none", marginBottom:16, textTransform:"uppercase" }}
         />
-
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:3, color:"#555", marginBottom:10 }}>CATEGORY</div>
         <div style={{ display:"flex", gap:8, marginBottom:20 }}>
           {Object.entries(CATEGORIES).map(([key, cat]) => (
@@ -188,7 +177,6 @@ function AddTaskModal({ onAdd, onClose }) {
             </button>
           ))}
         </div>
-
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:3, color:"#555", marginBottom:10 }}>DIFFICULTY</div>
         <div style={{ display:"flex", gap:8, marginBottom:24 }}>
           {["EASY","MEDIUM","HARD"].map(d => (
@@ -197,7 +185,6 @@ function AddTaskModal({ onAdd, onClose }) {
             </button>
           ))}
         </div>
-
         <button onClick={handleAdd} style={{ width:"100%", padding:"16px", background:"linear-gradient(90deg,#FF4D00,#FFD600)", border:"none", borderRadius:4, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, letterSpacing:4, fontWeight:700, color:"#000", textTransform:"uppercase", boxShadow:"0 0 20px rgba(255,77,0,0.4)" }}>
           ADD TASK
         </button>
@@ -261,7 +248,7 @@ export default function GrindMode() {
 
   const completedToday = tasks.filter(t => t.completed).length;
   const totalToday = tasks.length;
-  const todayPct = Math.round((completedToday / totalToday) * 100);
+  const todayPct = totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100);
   const userXP = profile?.xp || 0;
   const userLevel = getLevel(userXP);
   const levelName = getLevelName(userXP);
@@ -328,8 +315,16 @@ export default function GrindMode() {
                   <button key={f.key} className={`filter-btn ${filter===f.key?"active":""}`} onClick={() => setFilter(f.key)}>{f.label}</button>
                 ))}
               </div>
-              {filter === "all" ? Object.entries(CATEGORIES).map(([catKey,cat]) => {
+
+              {tasks.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"48px 0", fontFamily:"'Barlow Condensed',sans-serif" }}>
+                  <div style={{ fontSize:32, marginBottom:12 }}>⚡</div>
+                  <div style={{ fontSize:14, letterSpacing:3, color:"#444", marginBottom:6 }}>NO TASKS YET</div>
+                  <div style={{ fontSize:11, color:"#333", letterSpacing:1 }}>Add your first task below</div>
+                </div>
+              ) : filter === "all" ? Object.entries(CATEGORIES).map(([catKey,cat]) => {
                 const catTasks = tasks.filter(t => t.category===catKey);
+                if (catTasks.length === 0) return null;
                 const done = catTasks.filter(t => t.completed).length;
                 return (
                   <div key={catKey} style={{ marginBottom:24 }}>
