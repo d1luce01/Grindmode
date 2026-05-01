@@ -13,15 +13,7 @@ const CATEGORIES = {
 };
 
 const DIFFICULTY_XP = { EASY: 50, MEDIUM: 100, HARD: 200 };
-
 const DEFAULT_TASKS = [];
-
-const CHALLENGES = [
-  { id: 1, title: "THE IRON WEEK", desc: "Complete all fitness tasks 7 days straight", reward: 500, progress: 4, total: 7, expires: "3d 14h" },
-  { id: 2, title: "MONK MODE", desc: "No phone before 9am for 30 days", reward: 1000, progress: 0, total: 30, expires: "18d" },
-  { id: 3, title: "OUTPUT MACHINE", desc: "Log 10 deep work blocks this month", reward: 750, progress: 0, total: 10, expires: "22d" },
-];
-
 const LEVEL_NAMES = ["ROOKIE","GRINDER","IRON","STEEL","BRONZE","SILVER","GOLD","PLATINUM","DIAMOND","APEX"];
 
 function getLevel(xp) { return Math.min(Math.floor(xp / 1000) + 1, 99); }
@@ -97,7 +89,7 @@ function XPBar({ xp }) {
   const level = getLevel(xp);
   const levelXP = (level - 1) * 1000;
   const nextXP = level * 1000;
-  const pct = ((xp - levelXP) / (nextXP - levelXP)) * 100;
+  const pct = Math.min(100, ((xp - levelXP) / (nextXP - levelXP)) * 100);
   return (
     <div style={{ width:"100%" }}>
       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
@@ -145,16 +137,7 @@ function AddTaskModal({ onAdd, onClose }) {
 
   const handleAdd = () => {
     if (!text.trim()) return;
-    onAdd({
-      id: Date.now(),
-      text: text.trim(),
-      category,
-      difficulty,
-      xp: DIFFICULTY_XP[difficulty],
-      streak: 0,
-      completed: false,
-      custom: true,
-    });
+    onAdd({ id:Date.now(), text:text.trim(), category, difficulty, xp:DIFFICULTY_XP[difficulty], streak:0, completed:false, custom:true });
     onClose();
   };
 
@@ -162,16 +145,10 @@ function AddTaskModal({ onAdd, onClose }) {
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:500, display:"flex", alignItems:"flex-end" }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ width:"100%", background:"#111", borderRadius:"12px 12px 0 0", padding:"28px 24px 48px", border:"1px solid #222" }}>
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, letterSpacing:4, color:"#FF4D00", marginBottom:20 }}>+ NEW TASK</div>
-        <input
-          placeholder="TASK NAME"
-          value={text}
-          onChange={e => setText(e.target.value)}
-          autoFocus
-          style={{ width:"100%", padding:"14px 16px", background:"#0d0d0d", border:"1px solid #333", borderRadius:4, color:"#e0e0e0", fontSize:14, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:1, outline:"none", marginBottom:16, textTransform:"uppercase" }}
-        />
+        <input placeholder="TASK NAME" value={text} onChange={e => setText(e.target.value)} autoFocus style={{ width:"100%", padding:"14px 16px", background:"#0d0d0d", border:"1px solid #333", borderRadius:4, color:"#e0e0e0", fontSize:14, fontFamily:"'Barlow Condensed',sans-serif", letterSpacing:1, outline:"none", marginBottom:16, textTransform:"uppercase" }} />
         <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:3, color:"#555", marginBottom:10 }}>CATEGORY</div>
         <div style={{ display:"flex", gap:8, marginBottom:20 }}>
-          {Object.entries(CATEGORIES).map(([key, cat]) => (
+          {Object.entries(CATEGORIES).map(([key,cat]) => (
             <button key={key} onClick={() => setCategory(key)} style={{ flex:1, padding:"10px 6px", background:category===key?"rgba(255,77,0,0.1)":"transparent", border:category===key?`1px solid ${cat.color}`:"1px solid #222", borderRadius:4, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:2, color:category===key?cat.color:"#555", textTransform:"uppercase" }}>
               {cat.icon}<br/>{cat.label}
             </button>
@@ -185,9 +162,7 @@ function AddTaskModal({ onAdd, onClose }) {
             </button>
           ))}
         </div>
-        <button onClick={handleAdd} style={{ width:"100%", padding:"16px", background:"linear-gradient(90deg,#FF4D00,#FFD600)", border:"none", borderRadius:4, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, letterSpacing:4, fontWeight:700, color:"#000", textTransform:"uppercase", boxShadow:"0 0 20px rgba(255,77,0,0.4)" }}>
-          ADD TASK
-        </button>
+        <button onClick={handleAdd} style={{ width:"100%", padding:"16px", background:"linear-gradient(90deg,#FF4D00,#FFD600)", border:"none", borderRadius:4, cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:14, letterSpacing:4, fontWeight:700, color:"#000", textTransform:"uppercase", boxShadow:"0 0 20px rgba(255,77,0,0.4)" }}>ADD TASK</button>
       </div>
     </div>
   );
@@ -202,6 +177,7 @@ export default function GrindMode() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loadingBoard, setLoadingBoard] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [userXP, setUserXP] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -209,13 +185,16 @@ export default function GrindMode() {
     });
     supabase.auth.onAuthStateChange((_e, session) => {
       if (session?.user) { setUser(session.user); loadProfile(session.user.id); }
-      else { setUser(null); setProfile(null); }
+      else { setUser(null); setProfile(null); setUserXP(0); }
     });
   }, []);
 
   const loadProfile = async (uid) => {
     const { data } = await supabase.from("profiles").select("*").eq("id", uid).single();
-    if (data) setProfile(data);
+    if (data) {
+      setProfile(data);
+      setUserXP(data.xp || 0);
+    }
   };
 
   const loadLeaderboard = async () => {
@@ -232,24 +211,33 @@ export default function GrindMode() {
     const wasCompleted = task.completed;
     const xpDelta = wasCompleted ? -task.xp : task.xp;
     setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    const newXP = Math.max(0, userXP + xpDelta);
+    setUserXP(newXP);
     if (!wasCompleted) { setXpPop({ xp:task.xp, id:Date.now() }); setTimeout(() => setXpPop(null), 1800); }
-    if (user && profile) {
-      const newXP = Math.max(0, (profile.xp || 0) + xpDelta);
-      setProfile(p => ({ ...p, xp:newXP }));
+    if (user) {
       await supabase.from("profiles").update({ xp:newXP }).eq("id", user.id);
+      setProfile(p => ({ ...p, xp:newXP }));
     }
   };
 
   const addTask = (task) => setTasks(prev => [...prev, task]);
   const deleteTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
-  const handleSignOut = async () => { await supabase.auth.signOut(); setTasks(DEFAULT_TASKS); };
+  const handleSignOut = async () => { await supabase.auth.signOut(); setTasks([]); setUserXP(0); };
+
+  // Missions: derived from actual task completion
+  const missionStats = Object.entries(CATEGORIES).map(([key, cat]) => {
+    const catTasks = tasks.filter(t => t.category === key);
+    const completed = catTasks.filter(t => t.completed).length;
+    const total = catTasks.length;
+    const xpEarned = catTasks.filter(t => t.completed).reduce((sum, t) => sum + t.xp, 0);
+    return { key, cat, completed, total, xpEarned };
+  });
 
   if (!user) return <AuthScreen onAuth={(u) => { setUser(u); loadProfile(u.id); }} />;
 
   const completedToday = tasks.filter(t => t.completed).length;
   const totalToday = tasks.length;
   const todayPct = totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100);
-  const userXP = profile?.xp || 0;
   const userLevel = getLevel(userXP);
   const levelName = getLevelName(userXP);
   const filtered = filter === "all" ? tasks : tasks.filter(t => t.category === filter);
@@ -308,6 +296,7 @@ export default function GrindMode() {
         </div>
 
         <div style={{ padding:"20px 24px" }}>
+
           {tab === "today" && (
             <div style={{ animation:"fadeSlide 0.3s ease" }}>
               <div style={{ display:"flex", gap:6, marginBottom:16 }}>
@@ -315,7 +304,6 @@ export default function GrindMode() {
                   <button key={f.key} className={`filter-btn ${filter===f.key?"active":""}`} onClick={() => setFilter(f.key)}>{f.label}</button>
                 ))}
               </div>
-
               {tasks.length === 0 ? (
                 <div style={{ textAlign:"center", padding:"48px 0", fontFamily:"'Barlow Condensed',sans-serif" }}>
                   <div style={{ fontSize:32, marginBottom:12 }}>⚡</div>
@@ -336,7 +324,6 @@ export default function GrindMode() {
                   </div>
                 );
               }) : filtered.map(task => <TaskCard key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} />)}
-
               <button
                 onClick={() => setShowAddTask(true)}
                 style={{ width:"100%", padding:"14px", background:"transparent", border:"1px dashed #222", borderRadius:4, color:"#444", cursor:"pointer", fontFamily:"'Barlow Condensed',sans-serif", fontSize:12, letterSpacing:3, textTransform:"uppercase", marginTop:8, transition:"all 0.2s ease" }}
@@ -373,28 +360,33 @@ export default function GrindMode() {
 
           {tab === "challenges" && (
             <div style={{ animation:"fadeSlide 0.3s ease" }}>
-              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:4, color:"#555", marginBottom:16 }}>🎯 ACTIVE MISSIONS</div>
-              {CHALLENGES.map((c) => {
-                const pct = (c.progress/c.total)*100;
+              <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:4, color:"#555", marginBottom:16 }}>🎯 TODAY'S PROGRESS BY CATEGORY</div>
+              {tasks.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"48px 0", fontFamily:"'Barlow Condensed',sans-serif" }}>
+                  <div style={{ fontSize:32, marginBottom:12 }}>🎯</div>
+                  <div style={{ fontSize:14, letterSpacing:3, color:"#444", marginBottom:6 }}>NO MISSIONS YET</div>
+                  <div style={{ fontSize:11, color:"#333", letterSpacing:1 }}>Add tasks to start tracking progress</div>
+                </div>
+              ) : missionStats.map(({ key, cat, completed, total, xpEarned }) => {
+                const pct = total === 0 ? 0 : Math.round((completed / total) * 100);
                 return (
-                  <div key={c.id} style={{ background:"#0d0d0d", border:"1px solid #1e1e1e", borderRadius:4, padding:"18px 20px", marginBottom:10 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                  <div key={key} style={{ background:"#0d0d0d", border:"1px solid #1e1e1e", borderRadius:4, padding:"18px 20px", marginBottom:10 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
                       <div>
-                        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:16, letterSpacing:3, fontWeight:700, color:"#e8e8e8" }}>{c.title}</div>
-                        <div style={{ fontSize:11, color:"#666", marginTop:3 }}>{c.desc}</div>
+                        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:16, letterSpacing:3, fontWeight:700, color:cat.color }}>{cat.icon} {cat.label}</div>
+                        <div style={{ fontSize:11, color:"#555", marginTop:3 }}>{completed} of {total} tasks complete</div>
                       </div>
-                      <div style={{ textAlign:"right", flexShrink:0, marginLeft:16 }}>
-                        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:18, fontWeight:700, color:"#FFD600" }}>+{c.reward}</div>
-                        <div style={{ fontSize:9, letterSpacing:3, color:"#555" }}>XP</div>
+                      <div style={{ textAlign:"right" }}>
+                        <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:22, fontWeight:700, color: pct===100?"#FFD600":"#e0e0e0" }}>{pct}<span style={{ fontSize:12, color:"#555" }}>%</span></div>
+                        <div style={{ fontSize:9, letterSpacing:2, color:"#444" }}>{xpEarned} XP EARNED</div>
                       </div>
                     </div>
-                    <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:12 }}>
-                      <div style={{ flex:1, height:4, background:"#1a1a1a", borderRadius:2, overflow:"hidden" }}>
-                        <div style={{ height:"100%", width:`${pct}%`, background:"linear-gradient(90deg,#FF4D00,#FFD600)", borderRadius:2 }} />
-                      </div>
-                      <span style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:11, letterSpacing:2, color:"#FF4D00" }}>{c.progress}/{c.total}</span>
-                      <span style={{ fontSize:10, color:"#444" }}>⏱ {c.expires}</span>
+                    <div style={{ height:4, background:"#1a1a1a", borderRadius:2, overflow:"hidden" }}>
+                      <div style={{ height:"100%", width:`${pct}%`, background:`linear-gradient(90deg,${cat.color},#FFD600)`, borderRadius:2, transition:"width 0.8s ease", boxShadow:`0 0 8px ${cat.color}66` }} />
                     </div>
+                    {pct === 100 && (
+                      <div style={{ fontFamily:"'Barlow Condensed',sans-serif", fontSize:10, letterSpacing:3, color:"#FFD600", marginTop:8 }}>✓ CATEGORY COMPLETE</div>
+                    )}
                   </div>
                 );
               })}
